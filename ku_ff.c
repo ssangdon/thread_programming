@@ -1,5 +1,4 @@
 #include "ku_ps_input.h"
-#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -8,7 +7,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-volatile int ncount; 
+int ncount = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // int start, int end, int a1, int a2, int input[], int limit
 
@@ -17,19 +16,19 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 //     return 0;
 // }
 
-typedef struct{
+typedef struct
+{
     int start;
     int end;
     int a1;
     int a2;
     int limit;
-    int* arr;
-}my_arg;
+    int *arr;
+} my_arg;
 
 // typedef struct{
-    
-// }
 
+// }
 
 void *t_search(void *arg);
 
@@ -50,7 +49,6 @@ int main(int argc, char *argv[])
         printf("Error2");
         return 0;
     }
-
     else
     {
 
@@ -60,7 +58,7 @@ int main(int argc, char *argv[])
         char buff[5];
         int num = 0;
         int len = 0;
-        ncount = 0;
+        void *thread_result;
         ssize_t rd_size;
         if ((fd = open(filename, O_RDONLY, 0644)) < 0)
         {
@@ -105,35 +103,38 @@ int main(int argc, char *argv[])
         {
             arr[i] = arr[i - 1] + thread_num;
         }
-        // printf("%d %d\n", arr[0], arr[1]);
-        // printf("%d %d\n", arr[1], arr[2]);
-        // printf("%d %d\n", arr[2], arr[3]);
         my_arg arg;
         arg.a1 = range[0];
         arg.a2 = range[1];
         arg.limit = arrNum;
-        arg.arr=NUMS;
+        arg.arr = NUMS;
         //쓰레드 생성
         pthread_t thread_id[range[2]];
         int status;
 
         // 쓰레드 생성할때 인자로 범위 넘겨주자! 범위 그 전에 만들어야한다!
-        for(int i =0; i<range[2]; i++){
+        for (int i = 0; i < range[2]; i++)
+        {
             arg.start = arr[i];
-            arg.end = arr[i+1];
-            status = pthread_create(&thread_id[i],NULL, t_search, &arg);
-            if(status != 0){
+            arg.end = arr[i + 1];
+            status = pthread_create(&thread_id[i], NULL, t_search, &arg);
+            if (status != 0)
+            {
                 perror("create");
                 exit(1);
             }
+            status = pthread_join(thread_id[i], &thread_result);
+            if (status != 0)
+            {
+                perror("pthread_join");
+                exit(1);
+            }
         }
-
-        return 0;
+        printf("%d\n", ncount);
     }
-    printf("%d\n", ncount);
-
     return 0;
 }
+
 void *t_search(void *arg)
 {
     my_arg *targ = (my_arg *)arg;
@@ -146,34 +147,8 @@ void *t_search(void *arg)
     {
         if (targ->arr[i] >= a1 && targ->arr[i] <= a2 && i < limit)
         {
-            printf("123\n");
             ncount++;
         }
     }
     return NULL;
 }
-
-
-
-//전체 파일 크기 찾기
-// if ((filesize = lseek(fd, 0, SEEK_END)) < 0)
-// {
-//     fprintf(stderr, "lseek error\n");
-//     exit(1);
-// }
-
-// char *sarr[6] = { NULL, };
-// char *ptr = strtok(buff, "\n");
-// while (ptr != NULL) // 자른 문자열이 나오지 않을 때까지 반복
-// {
-//     sarr[i] = ptr; // 문자열을 자른 뒤 메모리 주소를 문자열 포인터 배열에 저장
-//     i++;           // 인덱스 증가
-//     ptr = strtok(NULL, "\n"); // 다음 문자열을 잘라서 포인터를 반환
-// }
-// int arrnum = atoi(sarr[0]);
-// int arrnum[0] = atoi(sarr[i]);
-// for (int i = 0; i < 6; i++)
-// {
-//     NUMS[i] = atoi(sarr[i]);
-// }
-// printf("%d\n",NUMS[3]);

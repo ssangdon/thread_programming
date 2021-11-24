@@ -9,12 +9,6 @@
 
 int ncount = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-// int start, int end, int a1, int a2, int input[], int limit
-
-// void *t_s(void *p){
-//     printf("HIHI\n");
-//     return 0;
-// }
 
 typedef struct
 {
@@ -26,15 +20,6 @@ typedef struct
     int *arrNUMS;
     int *outputArr;
 } my_arg;
-
-typedef struct
-{
-    int output;
-} my_ret;
-
-// typedef struct{
-
-// }
 
 void *t_search(void *arg);
 
@@ -145,31 +130,45 @@ int main(int argc, char *argv[])
                 exit(1);
             }
         }
-        if ((fd = open(wfilename, O_CREAT | O_WRONLY , 0644)) < 0)
+        if ((fd = open(wfilename, O_CREAT | O_WRONLY | O_TRUNC, 0644)) < 0)
         {
             perror("open");
             exit(1);
         }
         char strArr[6];
-        int len2 = 0;
+        sprintf(strArr, "%05d", ncount);
+        if ((write(fd, strArr, 6)) == -1)
+        {
+            perror("write");
+            exit(1);
+        }
+        int enterplace = 5;
         for (int j = 0; j < arrNum; j++)
         {
             if (outputArr[j] != 0)
             {
                 sprintf(strArr, "%05d", outputArr[j]);
-                printf("%s\n", strArr);
-                if ((pwrite(fd, strArr, 5, len2)) == -1)
+
+                if ((write(fd, strArr, 6)) == -1)
+                {
+                    perror("write");
+                    exit(1);
+                }
+                //개행문자 넣어주기 위한 pwrite
+                if ((pwrite(fd, "\n", 1, enterplace)) == -1)
                 {
                     perror("pwrite");
                     exit(1);
                 }
-                len2 += 6;
+                enterplace += 6;
             }
         }
+         if ((pwrite(fd, "\n", 1, enterplace)) == -1)
+                {
+                    perror("pwrite");
+                    exit(1);
+                }
         close(fd);
-        // char strArr[6];
-        // sprintf(strArr,"%05d",ncount);
-        // printf("%s\n", strArr);
     }
     return 0;
 }
@@ -177,7 +176,6 @@ int main(int argc, char *argv[])
 void *t_search(void *arg)
 {
     my_arg *targ = (my_arg *)arg;
-    my_ret *ret = malloc(sizeof(my_ret));
     int start = targ->start;
     int end = targ->end;
     int a1 = targ->a1;

@@ -23,8 +23,14 @@ typedef struct
     int a1;
     int a2;
     int limit;
-    int *arr;
+    int *arrNUMS;
+    int *outputArr;
 } my_arg;
+
+typedef struct
+{
+    int output;
+} my_ret;
 
 // typedef struct{
 
@@ -52,17 +58,19 @@ int main(int argc, char *argv[])
     else
     {
 
-        char *filename = argv[4];
+        char *rfilename = argv[4];
+        char *wfilename = argv[5];
         int fd;
         int i = 0;
         char buff[5];
+        char buff2[5];
         int num = 0;
         int len = 0;
         void *thread_result;
         ssize_t rd_size;
-        if ((fd = open(filename, O_RDONLY, 0644)) < 0)
+        if ((fd = open(rfilename, O_RDONLY, 0644)) < 0)
         {
-            fprintf(stderr, "open error for %s\n", filename);
+            fprintf(stderr, "open error for %s\n", rfilename);
             exit(1);
         }
         //정수 개수 받아오기위해서 따로 빼준 함수
@@ -85,7 +93,6 @@ int main(int argc, char *argv[])
             len += 6;
         };
         close(fd);
-
         //범위 나누기
         int arr[range[2] + 2];
         for (int i = 0; i < range[2] + 2; i++)
@@ -103,14 +110,22 @@ int main(int argc, char *argv[])
         {
             arr[i] = arr[i - 1] + thread_num;
         }
+
         my_arg arg;
         arg.a1 = range[0];
         arg.a2 = range[1];
         arg.limit = arrNum;
-        arg.arr = NUMS;
+        arg.arrNUMS = NUMS;
+
         //쓰레드 생성
         pthread_t thread_id[range[2]];
         int status;
+        int outputArr[arrNum];
+        for (int k = 0; k < arrNum; k++)
+        {
+            outputArr[k] = 0;
+        }
+        arg.outputArr = outputArr;
 
         // 쓰레드 생성할때 인자로 범위 넘겨주자! 범위 그 전에 만들어야한다!
         for (int i = 0; i < range[2]; i++)
@@ -130,7 +145,31 @@ int main(int argc, char *argv[])
                 exit(1);
             }
         }
-        printf("%d\n", ncount);
+        if ((fd = open(wfilename, O_CREAT | O_WRONLY , 0644)) < 0)
+        {
+            perror("open");
+            exit(1);
+        }
+        char strArr[6];
+        int len2 = 0;
+        for (int j = 0; j < arrNum; j++)
+        {
+            if (outputArr[j] != 0)
+            {
+                sprintf(strArr, "%05d", outputArr[j]);
+                printf("%s\n", strArr);
+                if ((pwrite(fd, strArr, 5, len2)) == -1)
+                {
+                    perror("pwrite");
+                    exit(1);
+                }
+                len2 += 6;
+            }
+        }
+        close(fd);
+        // char strArr[6];
+        // sprintf(strArr,"%05d",ncount);
+        // printf("%s\n", strArr);
     }
     return 0;
 }
@@ -138,6 +177,7 @@ int main(int argc, char *argv[])
 void *t_search(void *arg)
 {
     my_arg *targ = (my_arg *)arg;
+    my_ret *ret = malloc(sizeof(my_ret));
     int start = targ->start;
     int end = targ->end;
     int a1 = targ->a1;
@@ -145,8 +185,9 @@ void *t_search(void *arg)
     int limit = targ->limit;
     for (int i = start; i < end; i++)
     {
-        if (targ->arr[i] >= a1 && targ->arr[i] <= a2 && i < limit)
+        if (targ->arrNUMS[i] >= a1 && targ->arrNUMS[i] <= a2 && i < limit)
         {
+            targ->outputArr[i] = targ->arrNUMS[i];
             ncount++;
         }
     }
